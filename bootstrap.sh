@@ -122,12 +122,15 @@ if command -v code &>/dev/null; then
     code --install-extension anthropics.claude-code 2>/dev/null || true
     code --install-extension github.vscode-github-actions 2>/dev/null || true
     echo "   Installed Claude Code and GitHub Actions extensions"
-    # Terminal Activity extension (custom) - install from VSIX if available
-    if [ -f "$SCRIPT_DIR/extensions/terminal-activity.vsix" ]; then
-        code --install-extension "$SCRIPT_DIR/extensions/terminal-activity.vsix" 2>/dev/null || true
+    # Terminal Activity extension (custom) - download latest from GitHub
+    echo "   Downloading Terminal Activity extension..."
+    TAM_VSIX="/tmp/tam.vsix"
+    if curl -sL -o "$TAM_VSIX" "$(gh release view --repo kilo9alfa/TAM --json assets --jq '.assets[0].url')" 2>/dev/null; then
+        code --install-extension "$TAM_VSIX" 2>/dev/null || true
+        rm -f "$TAM_VSIX"
         echo "   Installed Terminal Activity extension"
     else
-        echo "   [skip] Terminal Activity .vsix not found in sister/extensions/"
+        echo "   [skip] Could not download Terminal Activity extension"
     fi
 else
     echo "   [skip] VS Code CLI not found - open VS Code first, then re-run"
