@@ -1,0 +1,7 @@
+mattmc3/ez-compinit
+zsh-users/zsh-completions kind:fpath path:src
+zsh-users/zsh-syntax-highlighting
+zsh-users/zsh-autosuggestions
+zsh-users/zsh-history-substring-search
+belak/zsh-utils path:editor
+belak/zsh-utils path:history

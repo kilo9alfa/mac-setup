@@ -1,0 +1,51 @@
+# Starship Prompt Configuration
+# https://starship.rs/config/
+
+# Minimal, fast prompt with essential info
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+read_only = " 󰌾"
+
+[git_branch]
+symbol = " "
+format = "[$symbol$branch]($style) "
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+
+[nodejs]
+symbol = " "
+detect_files = ["package.json", ".node-version"]
+
+[python]
+symbol = " "
+
+[rust]
+symbol = "󱘗 "
+
+[golang]
+symbol = " "
+
+[docker_context]
+symbol = " "
+
+[aws]
+symbol = "  "
+
+[package]
+symbol = "󰏗 "
+disabled = true
+
+# Disable modules you don't need
+[cmd_duration]
+min_time = 2000
+format = "[$duration]($style) "
+
+[time]
+disabled = true
