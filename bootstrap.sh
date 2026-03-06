@@ -139,7 +139,23 @@ echo ">> Installing Claude Code CLI..."
 npm install -g @anthropic-ai/claude-code
 echo "   Installed Claude Code (run 'claude' in terminal to start)"
 
-# ── 9. GitHub CLI auth ──────────────────────────────────────
+# ── 9. Claude Code config ────────────────────────────────────
+echo ""
+echo ">> Configuring Claude Code..."
+mkdir -p ~/.claude
+cat > ~/.claude/settings.json << 'EOF'
+{
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); dir=$(basename \"$cwd\"); model_full=$(echo \"$input\" | jq -r '.model.display_name'); model_short=$(echo \"$model_full\" | sed -E 's/Claude ([0-9.]+) (Sonnet|Opus|Haiku).*/\\2 \\1/'); used_pct=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); printf '\\033[34m~/%s\\033[0m' \"$dir\"; [ -n \"$model_short\" ] && printf ' \\033[32m[%s]\\033[0m' \"$model_short\"; [ -n \"$used_pct\" ] && printf ' \\033[35m[ctx:%s%%]\\033[0m' \"$used_pct\"; echo"
+  },
+  "alwaysThinkingEnabled": true,
+  "skipDangerousModePermissionPrompt": true
+}
+EOF
+echo "   Installed ~/.claude/settings.json"
+
+# ── 10. GitHub CLI auth ─────────────────────────────────────
 echo ""
 echo ">> GitHub authentication..."
 if ! gh auth status &>/dev/null 2>&1; then
@@ -149,7 +165,7 @@ else
     echo "   Already authenticated with GitHub"
 fi
 
-# ── 10. Obsidian plugins ────────────────────────────────────
+# ── 11. Obsidian plugins ────────────────────────────────────
 echo ""
 echo ">> Setting up Obsidian vault at ~/docs..."
 OBSIDIAN_DIR="$HOME/docs/.obsidian"
@@ -190,7 +206,7 @@ if [ -d "$SCRIPT_DIR/obsidian/plugins" ]; then
     done
 fi
 
-# ── 11. Karabiner ───────────────────────────────────────────
+# ── 12. Karabiner ───────────────────────────────────────────
 echo ""
 echo ">> Karabiner Elements installed via Homebrew"
 echo "   Open Karabiner and configure key remappings manually"
