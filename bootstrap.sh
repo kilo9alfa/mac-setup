@@ -121,7 +121,8 @@ echo ">> Installing VS Code extensions..."
 if command -v code &>/dev/null; then
     code --install-extension anthropics.claude-code 2>/dev/null || true
     code --install-extension github.vscode-github-actions 2>/dev/null || true
-    echo "   Installed Claude Code and GitHub Actions extensions"
+    code --install-extension harryhopkinson.vim-theme 2>/dev/null || true
+    echo "   Installed Claude Code, GitHub Actions, and Vim Theme extensions"
     # Terminal Activity extension (custom) - download latest from GitHub
     echo "   Downloading Terminal Activity extension..."
     TAM_VSIX="/tmp/tam.vsix"

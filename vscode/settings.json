@@ -9,6 +9,10 @@
     "workbench.statusBar.visible": false,
     "editor.minimap.enabled": false,
     "editor.bracketPairColorization.enabled": true,
+    "editor.accessibilitySupport": "off",
+    "editor.cursorBlinking": "smooth",
+    "editor.find.addExtraSpaceOnTop": false,
+    "explorer.openEditors.visible": 10,
     "workbench.colorCustomizations": {
         "[Vim Dark Medium]": {
             "editor.background": "#0a0a0a"
