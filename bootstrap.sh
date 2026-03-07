@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # Sister's Mac Bootstrap Script
 # Generated from sister-setup.md selections
@@ -19,7 +18,16 @@ if ! command -v brew &>/dev/null; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
 else
     echo ">> Homebrew already installed"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
+
+# Fix Homebrew permissions if needed
+for dir in /usr/local/Homebrew /usr/local/var/homebrew /usr/local/lib/node_modules; do
+    if [ -d "$dir" ] && [ ! -w "$dir" ]; then
+        echo ">> Fixing permissions on $dir..."
+        sudo chown -R "$(whoami)" "$dir"
+    fi
+done
 
 # ── 2. Brew packages (CLI tools, apps, fonts) ───────────────
 echo ""
