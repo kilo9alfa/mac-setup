@@ -49,6 +49,9 @@ cat > ~/.zshrc << 'ZSHRC'
 # Homebrew
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+# VS Code CLI
+export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+
 # Editor
 export EDITOR="code --wait"
 
@@ -118,6 +121,13 @@ echo "   Installed settings.json and keybindings.json"
 # ── 7. VS Code extensions ───────────────────────────────────
 echo ""
 echo ">> Installing VS Code extensions..."
+
+# Ensure 'code' CLI is in PATH (Homebrew cask doesn't add it automatically)
+VSCODE_BIN="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+if ! command -v code &>/dev/null && [ -f "$VSCODE_BIN" ]; then
+    export PATH="$PATH:$(dirname "$VSCODE_BIN")"
+fi
+
 if command -v code &>/dev/null; then
     code --install-extension anthropics.claude-code 2>/dev/null || true
     code --install-extension github.vscode-github-actions 2>/dev/null || true
