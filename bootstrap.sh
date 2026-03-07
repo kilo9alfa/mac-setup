@@ -159,12 +159,12 @@ cat > ~/.claude/settings.json << 'EOF'
 EOF
 echo "   Installed ~/.claude/settings.json"
 
-# ── 10. GitHub CLI auth ─────────────────────────────────────
+# ── 10. GitHub CLI auth (optional) ────────────────────────────
 echo ""
 echo ">> GitHub authentication..."
 if ! gh auth status &>/dev/null 2>&1; then
-    echo "   Please log in to GitHub:"
-    gh auth login
+    echo "   [skip] Not logged in to GitHub. This is optional."
+    echo "   To log in later, run: gh auth login"
 else
     echo "   Already authenticated with GitHub"
 fi
