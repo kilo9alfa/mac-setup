@@ -49,6 +49,9 @@ cat > ~/.zshrc << 'ZSHRC'
 # Homebrew
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+# npm global packages
+export PATH="$HOME/.npm-global/bin:$PATH"
+
 # VS Code CLI
 export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
 
@@ -150,6 +153,9 @@ fi
 # ── 8. Claude Code ──────────────────────────────────────────
 echo ""
 echo ">> Installing Claude Code CLI..."
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+export PATH="$HOME/.npm-global/bin:$PATH"
 npm install -g @anthropic-ai/claude-code
 echo "   Installed Claude Code (run 'claude' in terminal to start)"
 
