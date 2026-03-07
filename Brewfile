@@ -1,9 +1,6 @@
 # Sister's Brewfile - Generated from sister-setup.md selections
 # Run: brew bundle --file=Brewfile
 
-# Taps
-tap "homebrew/cask-fonts"
-
 # Fonts
 cask "font-meslo-lg-nerd-font"
 
