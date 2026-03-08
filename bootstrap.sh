@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Sister's Mac Bootstrap Script
-# Generated from sister-setup.md selections
-# Run: chmod +x bootstrap.sh && ./bootstrap.sh
+# Run: ./bootstrap.sh
+# Safe to re-run — overwrites configs, skips already-installed packages.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -15,44 +15,26 @@ echo ""
 if ! command -v brew &>/dev/null; then
     echo ">> Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-else
-    echo ">> Homebrew already installed"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
+eval "$(/opt/homebrew/bin/brew shellenv)"
+echo ">> Homebrew ready"
 
-# Fix Homebrew permissions if needed
-for dir in /usr/local/Homebrew /usr/local/var/homebrew /usr/local/lib/node_modules; do
-    if [ -d "$dir" ] && [ ! -w "$dir" ]; then
-        echo ">> Fixing permissions on $dir..."
-        sudo chown -R "$(whoami)" "$dir"
-    fi
-done
-
-# ── 2. Brew packages (CLI tools, apps, fonts) ───────────────
+# ── 2. npm global prefix (avoids permission errors) ──────────
 echo ""
-echo ">> Installing Homebrew packages..."
-brew bundle --file="$SCRIPT_DIR/Brewfile"
+echo ">> Configuring npm..."
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+export PATH="$HOME/.npm-global/bin:$PATH"
+echo "   npm global prefix set to ~/.npm-global"
 
-# ── 3. Create folder structure ───────────────────────────────
+# ── 3. Write .zshrc (do this early so it exists even if later steps fail)
 echo ""
-echo ">> Creating folder structure..."
-mkdir -p ~/docs
-mkdir -p ~/code
-echo "   Created ~/docs (Obsidian vault)"
-echo "   Created ~/code (Code projects)"
-
-# ── 4. ZSH config ───────────────────────────────────────────
-echo ""
-echo ">> Configuring ZSH..."
-
-# Backup existing .zshrc
+echo ">> Writing .zshrc..."
 if [ -f ~/.zshrc ] && [ ! -L ~/.zshrc ]; then
-    echo "   Backing up existing .zshrc to .zshrc.backup"
-    mv ~/.zshrc ~/.zshrc.backup
+    cp ~/.zshrc ~/.zshrc.backup
+    echo "   Backed up existing .zshrc"
 fi
 
-# Install .zshrc
 cat > ~/.zshrc << 'ZSHRC'
 # Homebrew
 eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -67,14 +49,16 @@ export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/b
 export EDITOR="code --wait"
 
 # Antidote (ZSH plugin manager)
-source $(brew --prefix)/opt/antidote/share/antidote/antidote.zsh
-antidote load ~/.zsh_plugins.txt
+if [ -f $(brew --prefix)/opt/antidote/share/antidote/antidote.zsh ]; then
+    source $(brew --prefix)/opt/antidote/share/antidote/antidote.zsh
+    [ -f ~/.zsh_plugins.txt ] && antidote load ~/.zsh_plugins.txt
+fi
 
 # Zoxide (smart cd)
-eval "$(zoxide init zsh)"
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 
 # Starship prompt
-eval "$(starship init zsh)"
+command -v starship &>/dev/null && eval "$(starship init zsh)"
 
 # Navigation aliases
 alias ..="cd .."
@@ -96,7 +80,7 @@ alias ls="ls -lah --color=auto"
 # Reload shell
 alias reload="source ~/.zshrc"
 
-# Claude Code launcher (shows last session summary, runs in dangerous mode)
+# Claude Code launcher
 clauded() {
     local latest=$(ls -t docs/*.EndOfSessionSummary.md 2>/dev/null | head -1)
     if [ -n "$latest" ]; then
@@ -108,66 +92,74 @@ ZSHRC
 
 echo "   Installed .zshrc"
 
-# Install ZSH plugins list
+# ── 4. Brew packages ─────────────────────────────────────────
+echo ""
+echo ">> Installing Homebrew packages..."
+brew bundle --file="$SCRIPT_DIR/Brewfile" || echo "   [warn] Some packages may have failed"
+
+# ── 5. Folder structure ──────────────────────────────────────
+echo ""
+echo ">> Creating folder structure..."
+mkdir -p ~/docs ~/code
+echo "   Created ~/docs and ~/code"
+
+# ── 6. ZSH plugins ──────────────────────────────────────────
 cp "$SCRIPT_DIR/zsh_plugins.txt" ~/.zsh_plugins.txt
 echo "   Installed .zsh_plugins.txt"
 
-# ── 5. Starship config ──────────────────────────────────────
+# ── 7. Starship config ──────────────────────────────────────
 echo ""
 echo ">> Configuring Starship prompt..."
 mkdir -p ~/.config
 cp "$SCRIPT_DIR/starship.toml" ~/.config/starship.toml
 echo "   Installed starship.toml"
 
-# ── 6. VS Code settings & keybindings ───────────────────────
+# ── 8. VS Code settings ─────────────────────────────────────
 echo ""
 echo ">> Configuring VS Code..."
 VSCODE_DIR="$HOME/Library/Application Support/Code/User"
 mkdir -p "$VSCODE_DIR"
-
 cp "$SCRIPT_DIR/vscode/settings.json" "$VSCODE_DIR/settings.json"
 cp "$SCRIPT_DIR/vscode/keybindings.json" "$VSCODE_DIR/keybindings.json"
 echo "   Installed settings.json and keybindings.json"
 
-# ── 7. VS Code extensions ───────────────────────────────────
+# ── 9. VS Code extensions ───────────────────────────────────
 echo ""
 echo ">> Installing VS Code extensions..."
 
-# Ensure 'code' CLI is in PATH (Homebrew cask doesn't add it automatically)
-VSCODE_BIN="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
-if ! command -v code &>/dev/null && [ -f "$VSCODE_BIN" ]; then
-    export PATH="$PATH:$(dirname "$VSCODE_BIN")"
-fi
+# Ensure 'code' CLI is in PATH
+VSCODE_BIN="/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+export PATH="$PATH:$VSCODE_BIN"
 
 if command -v code &>/dev/null; then
-    code --install-extension anthropics.claude-code 2>/dev/null || true
-    code --install-extension github.vscode-github-actions 2>/dev/null || true
-    code --install-extension harryhopkinson.vim-theme 2>/dev/null || true
-    echo "   Installed Claude Code, GitHub Actions, and Vim Theme extensions"
-    # Terminal Activity extension (custom) - download latest from GitHub
-    echo "   Downloading Terminal Activity extension..."
+    code --install-extension anthropic.claude-code 2>/dev/null && echo "   Installed Claude Code extension" || echo "   [warn] Claude Code extension failed"
+    code --install-extension github.vscode-github-actions 2>/dev/null && echo "   Installed GitHub Actions extension" || echo "   [warn] GitHub Actions extension failed"
+    code --install-extension harryhopkinson.vim-theme 2>/dev/null && echo "   Installed Vim Theme extension" || echo "   [warn] Vim Theme extension failed"
+
+    # Terminal Activity extension (TAM) - download from public GitHub release
+    echo "   Downloading TAM extension..."
+    TAM_URL="https://github.com/kilo9alfa/TAM/releases/latest/download/tam-terminal-activity-management-0.1.0.vsix"
     TAM_VSIX="/tmp/tam.vsix"
-    if curl -sL -o "$TAM_VSIX" "$(gh release view --repo kilo9alfa/TAM --json assets --jq '.assets[0].url')" 2>/dev/null; then
-        code --install-extension "$TAM_VSIX" 2>/dev/null || true
+    if curl -sL -o "$TAM_VSIX" "$TAM_URL" && [ -s "$TAM_VSIX" ]; then
+        code --install-extension "$TAM_VSIX" 2>/dev/null && echo "   Installed TAM extension" || echo "   [warn] TAM extension failed"
         rm -f "$TAM_VSIX"
-        echo "   Installed Terminal Activity extension"
     else
-        echo "   [skip] Could not download Terminal Activity extension"
+        echo "   [skip] Could not download TAM extension"
     fi
 else
-    echo "   [skip] VS Code CLI not found - open VS Code first, then re-run"
+    echo "   [skip] VS Code not found — install it, then re-run this script"
 fi
 
-# ── 8. Claude Code ──────────────────────────────────────────
+# ── 10. Claude Code CLI ─────────────────────────────────────
 echo ""
 echo ">> Installing Claude Code CLI..."
-mkdir -p ~/.npm-global
-npm config set prefix ~/.npm-global
-export PATH="$HOME/.npm-global/bin:$PATH"
-npm install -g @anthropic-ai/claude-code
-echo "   Installed Claude Code (run 'claude' in terminal to start)"
+if command -v claude &>/dev/null; then
+    echo "   Claude Code already installed ($(claude --version 2>/dev/null))"
+else
+    npm install -g @anthropic-ai/claude-code && echo "   Installed Claude Code CLI" || echo "   [ERROR] Claude Code install failed"
+fi
 
-# ── 9. Claude Code config ────────────────────────────────────
+# ── 11. Claude Code config ───────────────────────────────────
 echo ""
 echo ">> Configuring Claude Code..."
 mkdir -p ~/.claude
@@ -183,30 +175,17 @@ cat > ~/.claude/settings.json << 'EOF'
 EOF
 echo "   Installed ~/.claude/settings.json"
 
-# ── 10. GitHub CLI auth (optional) ────────────────────────────
-echo ""
-echo ">> GitHub authentication..."
-if ! gh auth status &>/dev/null 2>&1; then
-    echo "   [skip] Not logged in to GitHub. This is optional."
-    echo "   To log in later, run: gh auth login"
-else
-    echo "   Already authenticated with GitHub"
-fi
-
-# ── 11. Obsidian plugins ────────────────────────────────────
+# ── 12. Obsidian vault ───────────────────────────────────────
 echo ""
 echo ">> Setting up Obsidian vault at ~/docs..."
 OBSIDIAN_DIR="$HOME/docs/.obsidian"
-mkdir -p "$OBSIDIAN_DIR/plugins"
-mkdir -p "$OBSIDIAN_DIR/themes"
+mkdir -p "$OBSIDIAN_DIR/plugins" "$OBSIDIAN_DIR/themes"
 
-# Install Minimal theme
 if [ -d "$SCRIPT_DIR/obsidian/themes/Minimal" ]; then
     cp -r "$SCRIPT_DIR/obsidian/themes/Minimal" "$OBSIDIAN_DIR/themes/"
     echo "   Installed Minimal theme"
 fi
 
-# Community plugins list
 cat > "$OBSIDIAN_DIR/community-plugins.json" << 'EOF'
 [
     "table-editor-obsidian",
@@ -220,10 +199,7 @@ cat > "$OBSIDIAN_DIR/community-plugins.json" << 'EOF'
 ]
 EOF
 echo "   Created community-plugins.json"
-echo "   NOTE: Open Obsidian, go to Settings > Community Plugins > Browse"
-echo "   and install each plugin listed above. Then enable them."
 
-# Copy plugin folders if available
 if [ -d "$SCRIPT_DIR/obsidian/plugins" ]; then
     for plugin_dir in "$SCRIPT_DIR/obsidian/plugins"/*/; do
         if [ -d "$plugin_dir" ]; then
@@ -234,10 +210,32 @@ if [ -d "$SCRIPT_DIR/obsidian/plugins" ]; then
     done
 fi
 
-# ── 12. Karabiner ───────────────────────────────────────────
+# ── 13. Verify installation ─────────────────────────────────
 echo ""
-echo ">> Karabiner Elements installed via Homebrew"
-echo "   Open Karabiner and configure key remappings manually"
+echo "=========================================="
+echo "  Verification"
+echo "=========================================="
+echo ""
+ok=0; fail=0
+check() {
+    if "$@" &>/dev/null; then
+        echo "  [OK] $1"
+        ((ok++))
+    else
+        echo "  [FAIL] $1"
+        ((fail++))
+    fi
+}
+check brew --version
+check node --version
+check code --version
+check claude --version
+check starship --version
+[ -f ~/.zshrc ] && echo "  [OK] ~/.zshrc exists" && ((ok++)) || { echo "  [FAIL] ~/.zshrc missing"; ((fail++)); }
+[ -f ~/.config/starship.toml ] && echo "  [OK] starship.toml exists" && ((ok++)) || { echo "  [FAIL] starship.toml missing"; ((fail++)); }
+
+echo ""
+echo "  $ok passed, $fail failed"
 
 # ── Done ─────────────────────────────────────────────────────
 echo ""
@@ -246,20 +244,11 @@ echo "  Setup Complete!"
 echo "=========================================="
 echo ""
 echo "Next steps:"
-echo "  1. Open a new terminal tab to load the new shell config"
-echo "  2. Open VS Code - settings and keybindings are ready"
-echo "  3. Open Obsidian - set ~/docs as your vault"
-echo "     Then go to Settings > Community Plugins > Browse and install:"
-echo "       - Table Editor (table-editor-obsidian)"
-echo "       - Folder Notes (folder-notes)"
-echo "       - Collapse All (obsidian-collapse-all-plugin)"
-echo "       - Editing Toolbar (editing-toolbar)"
-echo "       - Recent Files (recent-files-obsidian)"
-echo "       - Copy as HTML (copy-as-html)"
-echo "       - Shell Commands (obsidian-shellcommands)"
-echo "     The chatmd-custom plugin and Minimal theme are already installed."
-echo "     Go to Settings > Appearance > Themes and select 'Minimal'."
-echo "  4. Run 'claude' in VS Code terminal to start Claude Code"
+echo "  1. Open a NEW terminal tab (to load shell config)"
+echo "  2. Open VS Code — settings and extensions are ready"
+echo "  3. Open Obsidian — set ~/docs as your vault"
+echo "     Go to Settings > Community Plugins > Browse and install the plugins."
+echo "     Select 'Minimal' theme in Settings > Appearance."
+echo "  4. Run 'claude' in terminal to start Claude Code"
 echo "     (first run will ask you to log in to Anthropic)"
-echo "  5. Configure Karabiner Elements for key remappings"
 echo ""
